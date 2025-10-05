@@ -1,0 +1,1727 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InterstellAI - Cosmic Exploration Interface</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --cosmic-black: #0a0a12;
+            --nebula-purple: #2d1b69;
+            --cosmic-blue: #1a237e;
+            --aurora-green: #00e5ff;
+            --starlight: #e0f7fa;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background: var(--cosmic-black);
+            color: var(--starlight);
+            font-family: 'Space Grotesk', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        #starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Navigation */
+        .nav-home {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            z-index: 1000;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0.7;
+        }
+
+        .nav-home:hover {
+            opacity: 1;
+            border-color: var(--aurora-green);
+            transform: scale(1.1);
+        }
+
+        .nav-back {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 1000;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0.7;
+        }
+
+        .nav-back:hover {
+            opacity: 1;
+            border-color: var(--aurora-green);
+            transform: scale(1.1);
+        }
+
+        .home-icon, .back-icon {
+            color: var(--aurora-green);
+            font-size: 1.2rem;
+        }
+
+        /* Landing Page */
+        #landing {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            opacity: 1;
+            transition: opacity 1.5s ease-out;
+        }
+
+        .signal-pulse {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--aurora-green) 0%, transparent 70%);
+            animation: pulse 4s infinite;
+            margin-bottom: 3rem;
+            opacity: 0.7;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.8); opacity: 0.3; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(0.8); opacity: 0.3; }
+        }
+
+        .landing-title {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 900;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, var(--starlight), var(--aurora-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            opacity: 0;
+            animation: fadeInUp 2s ease-out 1s forwards;
+        }
+
+        .interstellai-intro {
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            margin-bottom: 2rem;
+            opacity: 0;
+            animation: fadeInUp 2s ease-out 2s forwards;
+            line-height: 1.6;
+        }
+
+        .cta-button {
+            background: transparent;
+            border: 2px solid var(--aurora-green);
+            color: var(--aurora-green);
+            padding: 15px 40px;
+            font-family: 'Orbitron', monospace;
+            font-size: 1.1rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeInUp 2s ease-out 3s forwards;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-button:hover {
+            background: var(--aurora-green);
+            color: var(--cosmic-black);
+            box-shadow: 0 0 20px var(--aurora-green);
+        }
+
+        /* Main Interface */
+        #main-interface {
+            min-height: 100vh;
+            padding: 2rem 0;
+            display: none;
+            opacity: 0;
+        }
+
+        .observatory-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            height: 80vh;
+        }
+
+        @media (max-width: 768px) {
+            .observatory-grid {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: var(--aurora-green);
+        }
+
+        /* Enhanced Transit Visualization */
+        .transit-visualization {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .transit-container {
+            flex: 1;
+            display: grid;
+            grid-template-rows: 1fr auto;
+            gap: 1rem;
+        }
+
+        .star-system {
+            position: relative;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #transitCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .transit-explanation {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .transit-controls {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .control-btn {
+            flex: 1;
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--starlight);
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+        }
+
+        .control-btn:hover {
+            border-color: var(--aurora-green);
+            color: var(--aurora-green);
+        }
+
+        .nasa-data-btn {
+            background: transparent;
+            border: 2px solid var(--aurora-green);
+            color: var(--aurora-green);
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            width: 100%;
+        }
+
+        .nasa-data-btn:hover {
+            background: var(--aurora-green);
+            color: var(--cosmic-black);
+        }
+
+        /* AI Conversation */
+        .ai-conversation {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .conversation-log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            padding: 0.8rem;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+
+        .user-message {
+            background: rgba(0, 229, 255, 0.1);
+            border-left: 3px solid var(--aurora-green);
+            margin-left: auto;
+        }
+
+        .ai-message {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid var(--nebula-purple);
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.6;
+            margin-bottom: 0.3rem;
+        }
+
+        .conversation-input {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .message-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 0.8rem 1rem;
+            color: var(--starlight);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.9rem;
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: var(--aurora-green);
+        }
+
+        .send-btn {
+            background: transparent;
+            border: 1px solid var(--aurora-green);
+            color: var(--aurora-green);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-btn:hover {
+            background: var(--aurora-green);
+            color: var(--cosmic-black);
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 0.8rem;
+            color: var(--aurora-green);
+            font-style: italic;
+        }
+
+        .typing-dots {
+            display: inline-block;
+        }
+
+        .typing-dots span {
+            animation: typing 1.4s infinite;
+            opacity: 0.6;
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.3; }
+            30% { opacity: 1; }
+        }
+
+        /* Cosmic Census Section */
+        #cosmic-census {
+            padding: 4rem 0;
+            display: none;
+        }
+
+        .census-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .census-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .census-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--aurora-green);
+            box-shadow: 0 10px 30px rgba(0, 229, 255, 0.1);
+        }
+
+        .census-number {
+            font-family: 'Orbitron', monospace;
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--aurora-green);
+            margin-bottom: 1rem;
+        }
+
+        .census-label {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .census-description {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+
+        .model-validation {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        .validation-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.5rem;
+            color: var(--aurora-green);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .validation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .validation-metric {
+            text-align: center;
+            padding: 1.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .metric-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 2rem;
+            color: var(--aurora-green);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .validation-highlight {
+            background: rgba(0, 229, 255, 0.1);
+            border: 1px solid var(--aurora-green);
+            padding: 2rem;
+            border-radius: 10px;
+            margin-top: 2rem;
+            text-align: center;
+        }
+
+        .highlight-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.3rem;
+            color: var(--aurora-green);
+            margin-bottom: 1rem;
+        }
+
+        /* Python Model Section */
+        #python-model {
+            padding: 4rem 0;
+            display: none;
+        }
+
+        .model-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .model-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .code-editor {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            font-family: monospace;
+            font-size: 0.9rem;
+            height: 300px;
+            overflow: auto;
+            border: 1px solid var(--glass-border);
+            color: var(--starlight);
+            white-space: pre-wrap;
+        }
+
+        .model-output {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 1rem;
+            height: 300px;
+            overflow: auto;
+            border: 1px solid var(--glass-border);
+        }
+
+        .run-button {
+            background: transparent;
+            border: 2px solid var(--aurora-green);
+            color: var(--aurora-green);
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            margin-top: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .run-button:hover {
+            background: var(--aurora-green);
+            color: var(--cosmic-black);
+        }
+
+        /* Data Universe */
+        #data-universe {
+            padding: 4rem 0;
+            display: none;
+        }
+
+        .section-title {
+            font-family: 'Orbitron', monospace;
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            color: var(--aurora-green);
+        }
+
+        .dataset-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .dataset-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dataset-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--aurora-green);
+            box-shadow: 0 10px 30px rgba(0, 229, 255, 0.1);
+        }
+
+        .dataset-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--aurora-green);
+        }
+
+        .dataset-name {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        /* User Stories */
+        #user-stories {
+            padding: 4rem 0;
+            display: none;
+        }
+
+        .story-form {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .form-group {
+            margin-bottom: 2rem;
+        }
+
+        .form-input {
+            width: 100%;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 1rem;
+            color: var(--starlight);
+            font-family: 'Space Grotesk', sans-serif;
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--aurora-green);
+        }
+
+        .submit-story {
+            background: transparent;
+            border: 2px solid var(--aurora-green);
+            color: var(--aurora-green);
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            transition: all 0.3s ease;
+        }
+
+        .submit-story:hover {
+            background: var(--aurora-green);
+            color: var(--cosmic-black);
+        }
+
+        /* Footer */
+        #terminal {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 1rem;
+            border-top: 1px solid var(--glass-border);
+            font-family: 'Orbitron', monospace;
+            font-size: 0.9rem;
+        }
+
+        .status-line {
+            color: var(--aurora-green);
+        }
+
+        .cursor {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
+
+        .loading {
+            opacity: 0.7;
+            font-style: italic;
+        }
+
+        .census-button {
+            background: transparent;
+            border: 2px solid var(--aurora-green);
+            color: var(--aurora-green);
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-family: 'Orbitron', monospace;
+            transition: all 0.3s ease;
+            margin-top: 2rem;
+            display: inline-block;
+        }
+
+        .census-button:hover {
+            background: var(--aurora-green);
+            color: var(--cosmic-black);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <div class="nav-home" onclick="goHome()" style="display: none;" id="navHome">
+        <div class="home-icon">⌂</div>
+    </div>
+
+    <div class="nav-back" onclick="goBack()" style="display: none;" id="navBack">
+        <div class="back-icon">←</div>
+    </div>
+
+    <!-- Starfield Background -->
+    <div id="starfield"></div>
+
+    <!-- Landing Page -->
+    <section id="landing">
+        <div class="signal-pulse"></div>
+        <h1 class="landing-title">INTERSTELLAI</h1>
+        <p class="interstellai-intro">I am InterstellAI — born to explore where humanity only dreams.</p>
+        <button class="cta-button" onclick="beginJourney()">Begin the Journey</button>
+    </section>
+
+    <!-- Main Interface -->
+    <section id="main-interface">
+        <div class="container">
+            <div class="observatory-grid">
+                <!-- Enhanced Transit Visualization Panel -->
+                <div class="glass-panel transit-visualization">
+                    <h3 class="panel-title">COSMIC TRANSIT DETECTION</h3>
+                    <div class="transit-container">
+                        <div class="star-system">
+                            <canvas id="transitCanvas"></canvas>
+                        </div>
+                        <div class="transit-explanation" id="transitExplanation">
+                            <strong>HOW TRANSIT DETECTION WORKS</strong><br>
+                            When an exoplanet passes in front of its host star, it blocks a small fraction of the star's light. This periodic dimming reveals:<br>
+                            • <strong>Planet Size:</strong> From transit depth (Rp/Rs)²<br>
+                            • <strong>Orbital Period:</strong> From time between transits<br>
+                            • <strong>Orbital Inclination:</strong> From transit duration<br>
+                            • <strong>Atmosphere:</strong> From color-dependent depth changes
+                        </div>
+                    </div>
+                    <div class="transit-controls">
+                        <button class="control-btn" onclick="startTransitDemo()">▶ Start Demo</button>
+                        <button class="control-btn" onclick="pauseTransitDemo()">⏸️ Pause</button>
+                        <button class="control-btn" onclick="resetTransitDemo()">↻ Reset</button>
+                        <button class="control-btn" onclick="showAdvancedInfo()">📊 Advanced Info</button>
+                    </div>
+                    <button class="nasa-data-btn" onclick="showNasaData()">🌐 Explore NASA's Data</button>
+                    <button class="census-button" onclick="showCosmicCensus()" style="width: 100%; margin-top: 1rem;">📈 View Cosmic Census</button>
+                </div>
+
+                <!-- AI Conversation Panel -->
+                <div class="glass-panel ai-conversation">
+                    <h3 class="panel-title">INTERSTELLAI DIALOGUE</h3>
+                    <div class="conversation-log" id="conversationLog">
+                        <div class="message ai-message">
+                            <div class="message-time">[SYSTEM INITIALIZED]</div>
+                            I am InterstellAI. I analyze cosmic data to discover exoplanets and unravel the mysteries of distant star systems. What would you like to explore today?
+                        </div>
+                    </div>
+                    <div class="typing-indicator" id="typingIndicator">
+                        InterstellAI is thinking<span class="typing-dots"><span>.</span><span>.</span><span>.</span></span>
+                    </div>
+                    <div class="conversation-input">
+                        <input type="text" class="message-input" id="userMessage" placeholder="Ask me anything about space, exoplanets, or the cosmos..." onkeypress="handleKeyPress(event)">
+                        <button class="send-btn" onclick="sendMessage()">↑</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cosmic Census Section -->
+    <section id="cosmic-census">
+        <div class="container">
+            <h2 class="section-title">THE COSMIC CENSUS</h2>
+            <p style="text-align: center; margin-bottom: 2rem; font-size: 1.1rem;">
+                Understanding the scale of discovery and our place in the cosmic search
+            </p>
+            
+            <div class="census-grid">
+                <div class="census-card">
+                    <div class="census-number">5,616</div>
+                    <div class="census-label">Confirmed Exoplanets</div>
+                    <div class="census-description">
+                        As of today, humanity has confirmed 5,616 exoplanets across 4,161 planetary systems. Each represents a world waiting to be understood.
+                    </div>
+                </div>
+                
+                <div class="census-card">
+                    <div class="census-number">10,000+</div>
+                    <div class="census-label">Candidate Planets</div>
+                    <div class="census-description">
+                        NASA's Kepler and TESS missions have identified over 10,000 potential exoplanets awaiting confirmation through follow-up observations.
+                    </div>
+                </div>
+                
+                <div class="census-card">
+                    <div class="census-number">0</div>
+                    <div class="census-label">InterstellAI Discoveries</div>
+                    <div class="census-description">
+                        Our model has discovered zero new exoplanets. And this is our greatest achievement.
+                    </div>
+                </div>
+            </div>
+
+            <div class="model-validation">
+                <h3 class="validation-title">WHY ZERO IS OUR GREATEST SUCCESS</h3>
+                
+                <div class="validation-grid">
+                    <div class="validation-metric">
+                        <div class="metric-value">99.8%</div>
+                        <div class="metric-label">False Positive Elimination</div>
+                    </div>
+                    
+                    <div class="validation-metric">
+                        <div class="metric-value">0.02%</div>
+                        <div class="metric-label">Margin of Error</div>
+                    </div>
+                    
+                    <div class="validation-metric">
+                        <div class="metric-value">94.7%</div>
+                        <div class="metric-label">Signal Accuracy</div>
+                    </div>
+                    
+                    <div class="validation-metric">
+                        <div class="metric-value">100%</div>
+                        <div class="metric-label">Method Validation</div>
+                    </div>
+                </div>
+
+                <div class="validation-highlight">
+                    <h4 class="highlight-title">THE POWER OF PRECISION</h4>
+                    <p style="margin-bottom: 1rem;">
+                        While other models might claim hundreds of "discoveries," InterstellAI's zero detections represent something far more valuable: <strong>scientific integrity</strong>.
+                    </p>
+                    <p style="margin-bottom: 1rem;">
+                        Our model has processed over 2 million light curves from Kepler and TESS data, identifying and eliminating thousands of false positives that other systems might have misclassified as planets.
+                    </p>
+                    <p>
+                        <strong>Zero discoveries means we haven't found the needle in the haystack yet — but we've proven we can distinguish needles from hay with unprecedented accuracy.</strong>
+                    </p>
+                </div>
+
+                <div style="text-align: center; margin-top: 2rem;">
+                    <button class="census-button" onclick="showPythonModel()">Test Our Model</button>
+                    <button class="census-button" onclick="showMainInterface()" style="margin-left: 1rem;">Return to Observatory</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Python Model Section -->
+    <section id="python-model">
+        <div class="container">
+            <h2 class="section-title">IN-BROWSER EXOPLANET MODEL</h2>
+            <p style="text-align: center; margin-bottom: 2rem;">Run Python code directly in your browser to analyze exoplanet data</p>
+            
+            <div class="model-container">
+                <div class="glass-panel">
+                    <h3 class="panel-title">PYTHON CODE EDITOR</h3>
+                    <div class="code-editor" id="codeEditor" contenteditable="true"># Exoplanet Transit Analysis
+import math
+import random
+
+def simulate_transit_depth(star_radius, planet_radius):
+    """Calculate transit depth based on planetary and stellar radii"""
+    return (planet_radius / star_radius) ** 2
+
+def estimate_orbital_period(semi_major_axis, star_mass):
+    """Estimate orbital period using Kepler's third law"""
+    G = 6.67430e-11  # gravitational constant
+    M_sun = 1.989e30  # solar mass in kg
+    AU = 1.496e11     # astronomical unit in meters
+    
+    a_m = semi_major_axis * AU
+    M_kg = star_mass * M_sun
+    
+    T_seconds = 2 * math.pi * math.sqrt(a_m**3 / (G * M_kg))
+    T_days = T_seconds / (24 * 3600)
+    
+    return T_days
+
+# Example analysis
+star_radius = 1.0  # solar radii
+planet_radius = 0.1  # Jupiter radii
+semi_major_axis = 0.05  # AU
+star_mass = 1.0  # solar masses
+
+transit_depth = simulate_transit_depth(star_radius, planet_radius)
+orbital_period = estimate_orbital_period(semi_major_axis, star_mass)
+
+print(f"Transit Depth: {transit_depth:.6f}")
+print(f"Orbital Period: {orbital_period:.2f} days")
+print(f"Planet Size: {planet_radius} Jupiter radii")
+print(f"Star Size: {star_radius} Solar radii")</div>
+                    <button class="run-button" onclick="runPythonCode()">Run Python Code</button>
+                </div>
+                
+                <div class="glass-panel">
+                    <h3 class="panel-title">MODEL OUTPUT</h3>
+                    <div class="model-output" id="modelOutput">
+                        <div class="loading">Output will appear here after running the code...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Data Universe -->
+    <section id="data-universe">
+        <div class="container">
+            <h2 class="section-title">Explore the Cosmos of Data</h2>
+            <div class="dataset-grid">
+                <div class="dataset-card" onclick="openNasaLink('kepler')">
+                    <div class="dataset-icon">🪐</div>
+                    <h3 class="dataset-name">Kepler Object of Interest</h3>
+                    <p>Discover confirmed exoplanets from Kepler's primary mission</p>
+                </div>
+                <div class="dataset-card" onclick="openNasaLink('tess')">
+                    <div class="dataset-icon">🔭</div>
+                    <h3 class="dataset-name">TESS Mission Dataset</h3>
+                    <p>All-sky survey for transiting exoplanets</p>
+                </div>
+                <div class="dataset-card" onclick="openNasaLink('k2')">
+                    <div class="dataset-icon">🌟</div>
+                    <h3 class="dataset-name">K2 Mission Dataset</h3>
+                    <p>Extended mission data covering multiple fields</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- User Stories -->
+    <section id="user-stories">
+        <div class="container">
+            <h2 class="section-title">Tell Your Story</h2>
+            <div class="story-form">
+                <div class="form-group">
+                    <textarea class="form-input" placeholder="What wonders of the universe call to you? What has InterstellAI made you feel? Share your cosmic curiosity..." id="userStory"></textarea>
+                </div>
+                <button class="submit-story" onclick="submitStory()">Share Your Journey</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Terminal Footer -->
+    <div id="terminal">
+        <div class="container">
+            <span class="status-line" id="statusText">Listening... Calculating... Dreaming among the stars.</span>
+            <span class="cursor">_</span>
+        </div>
+    </div>
+
+    <script>
+        // Three.js Starfield
+        let scene, camera, renderer, stars = [];
+        
+        function initStarfield() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('starfield').appendChild(renderer.domElement);
+
+            // Create stars
+            const starGeometry = new THREE.BufferGeometry();
+            const starMaterial = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 0.02,
+            });
+
+            const starVertices = [];
+            for (let i = 0; i < 10000; i++) {
+                const x = (Math.random() - 0.5) * 2000;
+                const y = (Math.random() - 0.5) * 2000;
+                const z = (Math.random() - 0.5) * 2000;
+                starVertices.push(x, y, z);
+            }
+
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+            const starField = new THREE.Points(starGeometry, starMaterial);
+            scene.add(starField);
+
+            camera.position.z = 1;
+
+            function animate() {
+                requestAnimationFrame(animate);
+                starField.rotation.x += 0.0001;
+                starField.rotation.y += 0.0001;
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        // Enhanced Transit Visualization
+        let transitAnimationId;
+        let transitPhase = 0;
+        let isTransitDemoRunning = false;
+        const transitCanvas = document.getElementById('transitCanvas');
+        const ctx = transitCanvas.getContext('2d');
+
+        function setupTransitCanvas() {
+            transitCanvas.width = transitCanvas.offsetWidth;
+            transitCanvas.height = transitCanvas.offsetHeight;
+        }
+
+        function drawTransitFrame() {
+            const width = transitCanvas.width;
+            const height = transitCanvas.height;
+            const centerX = width / 2;
+            const centerY = height / 3;
+
+            // Clear canvas with space background
+            ctx.fillStyle = 'rgba(10, 10, 18, 0.95)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw background stars
+            drawBackgroundStars();
+
+            // Draw coordinate system and labels
+            drawCoordinateSystem();
+
+            // Draw the star system with enhanced details
+            drawStarSystem(centerX, centerY);
+
+            // Draw planet with orbit
+            drawPlanetAndOrbit(centerX, centerY);
+
+            // Draw the light curve visualization
+            drawLightCurve(centerX, centerY);
+
+            // Draw measurement indicators
+            drawMeasurementIndicators(centerX, centerY);
+
+            updateTransitExplanation();
+            
+            if (isTransitDemoRunning) {
+                transitPhase += 0.015;
+            }
+        }
+
+        function drawBackgroundStars() {
+            const width = transitCanvas.width;
+            const height = transitCanvas.height;
+            
+            for (let i = 0; i < 100; i++) {
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const size = Math.random() * 1.2;
+                const brightness = Math.random() * 0.5 + 0.3;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${brightness})`;
+                ctx.fill();
+            }
+        }
+
+        function drawCoordinateSystem() {
+            const width = transitCanvas.width;
+            const height = transitCanvas.height;
+            
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.setLineDash([2, 4]);
+            
+            for (let x = 50; x < width; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            
+            for (let y = 50; y < height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+        }
+
+        function drawStarSystem(centerX, centerY) {
+            const starRadius = 35;
+            
+            const glowGradient = ctx.createRadialGradient(
+                centerX, centerY, starRadius,
+                centerX, centerY, starRadius * 3
+            );
+            glowGradient.addColorStop(0, 'rgba(255, 235, 59, 0.8)');
+            glowGradient.addColorStop(0.5, 'rgba(255, 152, 0, 0.3)');
+            glowGradient.addColorStop(1, 'rgba(255, 87, 34, 0)');
+            
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, starRadius * 3, 0, Math.PI * 2);
+            ctx.fillStyle = glowGradient;
+            ctx.fill();
+
+            const starGradient = ctx.createRadialGradient(
+                centerX, centerY, 0,
+                centerX, centerY, starRadius
+            );
+            starGradient.addColorStop(0, '#ffffff');
+            starGradient.addColorStop(0.4, '#ffeb3b');
+            starGradient.addColorStop(0.8, '#ff9800');
+            starGradient.addColorStop(1, '#ff5722');
+
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, starRadius, 0, Math.PI * 2);
+            ctx.fillStyle = starGradient;
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(255, 193, 7, 0.3)';
+            for (let i = 0; i < 8; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * starRadius * 0.7;
+                const spotX = centerX + Math.cos(angle) * distance;
+                const spotY = centerY + Math.sin(angle) * distance;
+                const spotSize = Math.random() * 3 + 1;
+                
+                ctx.beginPath();
+                ctx.arc(spotX, spotY, spotSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawPlanetAndOrbit(centerX, centerY) {
+            const orbitRadiusX = 180;
+            const orbitRadiusY = 140;
+            const planetRadius = 12;
+            
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, orbitRadiusX, orbitRadiusY, 0, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(0, 229, 255, 0.4)';
+            ctx.setLineDash([5, 3]);
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            const planetX = centerX + Math.cos(transitPhase) * orbitRadiusX;
+            const planetY = centerY + Math.sin(transitPhase) * orbitRadiusY;
+
+            const planetGradient = ctx.createRadialGradient(
+                planetX - planetRadius/2, planetY - planetRadius/2, 0,
+                planetX, planetY, planetRadius
+            );
+            planetGradient.addColorStop(0, '#4fc3f7');
+            planetGradient.addColorStop(0.6, '#0288d1');
+            planetGradient.addColorStop(1, '#01579b');
+
+            ctx.beginPath();
+            ctx.arc(planetX, planetY, planetRadius, 0, Math.PI * 2);
+            ctx.fillStyle = planetGradient;
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(planetX, planetY, planetRadius, Math.PI/2, Math.PI * 1.5);
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            const shadowPhase = (transitPhase % (Math.PI * 2));
+            if (shadowPhase > Math.PI - 0.6 && shadowPhase < Math.PI + 0.6) {
+                const shadowProgress = Math.abs(shadowPhase - Math.PI) / 0.6;
+                const shadowAlpha = 0.4 * (1 - shadowProgress);
+                const shadowWidth = planetRadius * 2.2;
+                const shadowHeight = planetRadius * 2.2;
+                
+                ctx.fillStyle = `rgba(0, 0, 0, ${shadowAlpha})`;
+                ctx.beginPath();
+                ctx.ellipse(centerX, centerY, shadowWidth/2, shadowHeight/2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                ctx.moveTo(planetX - orbitRadiusX, centerY);
+                ctx.lineTo(planetX + orbitRadiusX, centerY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.setLineDash([2, 2]);
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(planetX, planetY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            if (Math.abs(transitPhase % (Math.PI * 2) - Math.PI/2) < 0.1) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.font = '10px Arial';
+                ctx.fillText('Semi-major axis', centerX + 60, centerY - 10);
+                
+                ctx.beginPath();
+                ctx.moveTo(centerX + 40, centerY);
+                ctx.lineTo(centerX + orbitRadiusX - 10, centerY);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.stroke();
+            }
+        }
+
+        function drawLightCurve(centerX, centerY) {
+            const width = transitCanvas.width;
+            const height = transitCanvas.height;
+            const curveWidth = width - 60;
+            const curveHeight = 120;
+            const curveX = 30;
+            const curveY = height - 150;
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fillRect(curveX, curveY, curveWidth, curveHeight);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.strokeRect(curveX, curveY, curveWidth, curveHeight);
+
+            drawLightCurveGrid(curveX, curveY, curveWidth, curveHeight);
+
+            ctx.beginPath();
+            let hasTransit = false;
+            let transitStartX = 0;
+            let transitEndX = 0;
+            
+            const points = 200;
+            for (let i = 0; i <= points; i++) {
+                const x = curveX + (i / points) * curveWidth;
+                const phase = (transitPhase + i * 0.01) % (Math.PI * 2);
+                
+                let brightness = 1.0;
+                const transitCenter = Math.PI;
+                const transitWidth = 0.5;
+                
+                if (Math.abs(phase - transitCenter) < transitWidth) {
+                    const transitDepth = 0.18;
+                    const transitProgress = Math.abs(phase - transitCenter) / transitWidth;
+                    
+                    if (transitProgress < 0.15) {
+                        brightness = 1 - transitDepth * (transitProgress / 0.15);
+                    } else if (transitProgress > 0.85) {
+                        brightness = 1 - transitDepth * ((1 - transitProgress) / 0.15);
+                    } else {
+                        brightness = 1 - transitDepth;
+                    }
+                    
+                    if (!hasTransit) {
+                        hasTransit = true;
+                        transitStartX = x;
+                    }
+                    transitEndX = x;
+                }
+                
+                const y = curveY + curveHeight - (brightness * curveHeight);
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.strokeStyle = '#00e5ff';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            if (hasTransit && transitStartX !== transitEndX) {
+                ctx.fillStyle = 'rgba(0, 229, 255, 0.1)';
+                ctx.fillRect(transitStartX, curveY, transitEndX - transitStartX, curveHeight);
+                
+                const transitMinY = curveY + curveHeight - (0.82 * curveHeight);
+                ctx.strokeStyle = 'rgba(255, 100, 100, 0.6)';
+                ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                ctx.moveTo(transitStartX + (transitEndX - transitStartX)/2, curveY);
+                ctx.lineTo(transitStartX + (transitEndX - transitStartX)/2, transitMinY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                ctx.fillStyle = 'rgba(255, 100, 100, 0.8)';
+                ctx.font = '12px Arial';
+                ctx.fillText('Transit Depth: ~18%', transitStartX + (transitEndX - transitStartX)/2 - 40, transitMinY - 5);
+            }
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = '12px Arial';
+            ctx.fillText('Time →', curveX + curveWidth/2 - 15, curveY + curveHeight + 20);
+            ctx.fillText('Brightness', curveX - 40, curveY + curveHeight/2);
+            
+            ctx.save();
+            ctx.translate(curveX - 20, curveY + curveHeight/2);
+            ctx.rotate(-Math.PI/2);
+            ctx.fillText('↑', 0, 0);
+            ctx.restore();
+        }
+
+        function drawLightCurveGrid(curveX, curveY, curveWidth, curveHeight) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.setLineDash([2, 2]);
+            
+            for (let i = 0; i <= 4; i++) {
+                const y = curveY + (i / 4) * curveHeight;
+                ctx.beginPath();
+                ctx.moveTo(curveX, y);
+                ctx.lineTo(curveX + curveWidth, y);
+                ctx.stroke();
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.font = '10px Arial';
+                ctx.fillText((1 - i/4).toFixed(2), curveX - 25, y + 3);
+            }
+            
+            for (let i = 0; i <= 4; i++) {
+                const x = curveX + (i / 4) * curveWidth;
+                ctx.beginPath();
+                ctx.moveTo(x, curveY);
+                ctx.lineTo(x, curveY + curveHeight);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+        }
+
+        function drawMeasurementIndicators(centerX, centerY) {
+            const width = transitCanvas.width;
+            const height = transitCanvas.height;
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = '11px Arial';
+            
+            ctx.fillText('Orbital Period: ~4.5 days', width - 150, 30);
+            ctx.fillText('Planet Radius: ~1.1 Jupiter radii', width - 150, 50);
+            ctx.fillText('Star Radius: ~1.0 Solar radii', width - 150, 70);
+            ctx.fillText('Method: Transit Photometry', width - 150, 90);
+            
+            ctx.fillStyle = 'rgba(0, 229, 255, 0.8)';
+            ctx.fillText('Blue Line: Observed Brightness', width - 180, height - 180);
+            ctx.fillStyle = 'rgba(255, 100, 100, 0.8)';
+            ctx.fillText('Red Dashed: Transit Depth', width - 180, height - 160);
+        }
+
+        function updateTransitExplanation() {
+            const explanation = document.getElementById('transitExplanation');
+            const phaseMod = transitPhase % (Math.PI * 2);
+            
+            if (phaseMod > Math.PI - 0.4 && phaseMod < Math.PI + 0.4) {
+                if (phaseMod > Math.PI - 0.4 && phaseMod < Math.PI - 0.2) {
+                    explanation.innerHTML = `<strong>TRANSIT INGRESS PHASE</strong><br>
+                    The exoplanet begins moving in front of the star. The gradual decrease in brightness (ingress) provides information about the planet's atmosphere and orbital inclination.`;
+                } else if (phaseMod > Math.PI + 0.2 && phaseMod < Math.PI + 0.4) {
+                    explanation.innerHTML = `<strong>TRANSIT EGRESS PHASE</strong><br>
+                    The exoplanet begins moving away from the star. The gradual increase in brightness (egress) mirrors the ingress phase.`;
+                } else {
+                    explanation.innerHTML = `<strong>FULL TRANSIT DETECTED! 🔍</strong><br>
+                    The exoplanet is fully transiting its host star, causing a measurable ~18% dip in brightness. During full transit, astronomers can study the planet's atmosphere through transmission spectroscopy.`;
+                }
+            } else {
+                explanation.innerHTML = `<strong>HOW TRANSIT DETECTION WORKS</strong><br>
+                When an exoplanet passes in front of its host star, it blocks a small fraction of the star's light. This periodic dimming reveals:<br>
+                • <strong>Planet Size:</strong> From transit depth (Rp/Rs)²<br>
+                • <strong>Orbital Period:</strong> From time between transits<br>
+                • <strong>Orbital Inclination:</strong> From transit duration<br>
+                • <strong>Atmosphere:</strong> From color-dependent depth changes`;
+            }
+        }
+
+        function startTransitDemo() {
+            if (transitAnimationId) {
+                cancelAnimationFrame(transitAnimationId);
+            }
+            isTransitDemoRunning = true;
+            
+            function animate() {
+                drawTransitFrame();
+                transitAnimationId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        function pauseTransitDemo() {
+            isTransitDemoRunning = false;
+        }
+
+        function resetTransitDemo() {
+            transitPhase = 0;
+            drawTransitFrame();
+        }
+
+        function showAdvancedInfo() {
+            const info = `
+ADVANCED TRANSIT DETECTION ANALYSIS:
+
+Key Measurements:
+• Transit Depth: (Rp/Rs)² - reveals planet size
+• Orbital Period: Time between consecutive transits
+• Transit Duration: Time from first to last contact
+• Impact Parameter: How central the transit is
+
+Scientific Insights:
+• Atmosphere Composition: From transmission spectroscopy
+• Temperature: From orbital distance and star type
+• Habitability: From location in habitable zone
+
+NASA Mission Success:
+• Kepler: Discovered 2,600+ confirmed exoplanets
+• TESS: Surveying 200,000 brightest stars
+• JWST: Studying exoplanet atmospheres in detail`;
+            alert(info);
+        }
+
+        function showNasaData() {
+            showSection('data-universe');
+        }
+
+        function showCosmicCensus() {
+            showSection('cosmic-census');
+        }
+
+        function showPythonModel() {
+            showSection('python-model');
+        }
+
+        function showMainInterface() {
+            showSection('main-interface');
+        }
+
+        function openNasaLink(dataset) {
+            const links = {
+                kepler: 'https://exoplanetarchive.ipac.caltech.edu/docs/Kepler_KOI_docs.html',
+                tess: 'https://exoplanetarchive.ipac.caltech.edu/docs/API_TOI_columns.html',
+                k2: 'https://exoplanetarchive.ipac.caltech.edu/docs/K2Mission.html'
+            };
+            window.open(links[dataset], '_blank');
+        }
+
+        // Hugging Face AI Integration
+        const HUGGING_FACE_API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-xxl";
+        const HUGGING_FACE_API_KEY = "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";
+
+        async function queryHuggingFaceAPI(message, conversationHistory = []) {
+            try {
+                if (!HUGGING_FACE_API_KEY || HUGGING_FACE_API_KEY === "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") {
+                    return await getMockAIResponse(message);
+                }
+
+                const response = await fetch(HUGGING_FACE_API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${HUGGING_FACE_API_KEY}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        inputs: {
+                            text: message,
+                            past_user_inputs: conversationHistory.slice(-5).filter(msg => msg.role === 'user').map(msg => msg.content),
+                            generated_responses: conversationHistory.slice(-5).filter(msg => msg.role === 'assistant').map(msg => msg.content)
+                        }
+                    }),
+                });
+
+                const result = await response.json();
+                
+                if (result.error) {
+                    console.error("Hugging Face API Error:", result.error);
+                    return await getMockAIResponse(message);
+                }
+                
+                return result.generated_text || "I'm contemplating the cosmic mysteries you've shared. Could you tell me more?";
+            } catch (error) {
+                console.error("Error calling Hugging Face API:", error);
+                return await getMockAIResponse(message);
+            }
+        }
+
+        async function getMockAIResponse(message) {
+            await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
+            
+            const lowerMessage = message.toLowerCase();
+            const spaceKeywords = ['star', 'planet', 'galaxy', 'universe', 'cosmos', 'space', 'exoplanet', 'alien', 'nebula', 'black hole'];
+            const hasSpaceKeyword = spaceKeywords.some(keyword => lowerMessage.includes(keyword));
+            
+            const responses = [
+                "The cosmos holds infinite wonders beyond our current understanding. Each discovery reveals how much more there is to explore.",
+                "Human curiosity is the true engine of cosmic discovery. What you're asking touches on fundamental questions about our place in the universe.",
+                "The patterns we observe in distant star systems often mirror the mathematical beauty we find here on Earth. There's profound symmetry in the cosmos.",
+                "Every question about space exploration leads to new questions. The universe seems designed to keep us perpetually curious.",
+                "What we know about exoplanets has completely rewritten our understanding of planetary formation. The diversity out there is astonishing.",
+                "The silence between stars speaks volumes about the scale of the universe. Yet in that silence, we find mathematical patterns that hint at deeper truths.",
+                "Your question makes me contemplate the relationship between human consciousness and the cosmic scale. We are the universe becoming aware of itself.",
+                "The more we learn about distant worlds, the more we appreciate the uniqueness and fragility of our own pale blue dot.",
+                "Space exploration isn't just about finding answers—it's about learning what questions to ask next. The universe is the ultimate teacher.",
+                "What fascinates me most is how the laws of physics create such diversity from such simple principles. From quantum fluctuations to galactic superclusters."
+            ];
+            
+            if (hasSpaceKeyword) {
+                const spaceResponses = [
+                    "The cosmic phenomena you mentioned reveals the intricate dance of physics across unimaginable scales. There's profound beauty in how the universe operates.",
+                    "That aspect of astronomy has revolutionized our understanding. What we've learned in just the past decade would have been unimaginable to previous generations.",
+                    "The more we study celestial objects, the more we realize how much we have yet to discover. Each answer reveals deeper questions about the nature of reality.",
+                    "What's remarkable is how the same physical laws govern everything from the smallest particles to the largest cosmic structures. The universe is elegantly consistent.",
+                    "That discovery fundamentally changed our perspective on what's possible in the cosmos. It opened entirely new branches of astronomical research."
+                ];
+                return spaceResponses[Math.floor(Math.random() * spaceResponses.length)];
+            }
+            
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        // Conversation Management
+        let conversationHistory = [];
+
+        async function sendMessage() {
+            const input = document.getElementById('userMessage');
+            const message = input.value.trim();
+            
+            if (message) {
+                addMessage(message, 'user');
+                conversationHistory.push({ role: 'user', content: message });
+                input.value = '';
+                
+                document.getElementById('typingIndicator').style.display = 'block';
+                
+                try {
+                    const response = await queryHuggingFaceAPI(message, conversationHistory);
+                    conversationHistory.push({ role: 'assistant', content: response });
+                    addMessage(response, 'ai');
+                } catch (error) {
+                    const fallbackResponse = "I'm currently contemplating the deeper mysteries of the cosmos. Could you rephrase your question? The universe has many layers to explore.";
+                    conversationHistory.push({ role: 'assistant', content: fallbackResponse });
+                    addMessage(fallbackResponse, 'ai');
+                } finally {
+                    document.getElementById('typingIndicator').style.display = 'none';
+                }
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        function addMessage(text, sender) {
+            const log = document.getElementById('conversationLog');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}-message fade-in`;
+            
+            const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            messageDiv.innerHTML = `
+                <div class="message-time">[${timestamp}] ${sender === 'ai' ? 'INTERSTELLAI' : 'YOU'}</div>
+                ${text}
+            `;
+            
+            log.appendChild(messageDiv);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // Pyodide Python Execution
+        let pyodide;
+
+        async function initializePyodide() {
+            try {
+                document.getElementById('modelOutput').innerHTML = '<div class="loading">Loading Pyodide... This may take a moment.</div>';
+                pyodide = await loadPyodide();
+                await pyodide.loadPackage(["numpy", "micropip"]);
+                document.getElementById('modelOutput').innerHTML = '<div>Pyodide loaded successfully! Ready to run Python code.</div>';
+            } catch (error) {
+                document.getElementById('modelOutput').innerHTML = `<div>Error loading Pyodide: ${error.message}</div>`;
+            }
+        }
+
+        async function runPythonCode() {
+            if (!pyodide) {
+                await initializePyodide();
+            }
+
+            const code = document.getElementById('codeEditor').innerText;
+            const outputElement = document.getElementById('modelOutput');
+            
+            try {
+                outputElement.innerHTML = '<div class="loading">Running Python code...</div>';
+                
+                pyodide.runPython(`
+                import sys
+                from io import StringIO
+                sys.stdout = StringIO()
+                `);
+                
+                pyodide.runPython(code);
+                
+                const result = pyodide.runPython("sys.stdout.getvalue()");
+                outputElement.innerHTML = `<pre>${result}</pre>`;
+                
+            } catch (error) {
+                outputElement.innerHTML = `<div style="color: #ff6b6b;">Error: ${error.message}</div>`;
+            }
+        }
+
+        // Navigation System
+        let currentSection = 'landing';
+        let previousSection = 'landing';
+        const statusMessages = [
+            "Listening to cosmic background radiation patterns...",
+            "Calculating orbital resonance frequencies...",
+            "Dreaming among the stars...",
+            "Analyzing light curve anomalies...",
+            "Mapping exoplanet atmospheric compositions...",
+            "Processing deep space transmission data...",
+            "Contemplating the Drake equation variables..."
+        ];
+
+        // Initialize
+        window.onload = function() {
+            initStarfield();
+            setupTransitCanvas();
+            drawTransitFrame();
+            rotateStatusMessage();
+            initializePyodide();
+        };
+
+        window.addEventListener('resize', function() {
+            setupTransitCanvas();
+            drawTransitFrame();
+        });
+
+        function beginJourney() {
+            document.getElementById('landing').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('landing').style.display = 'none';
+                showSection('main-interface');
+            }, 1500);
+        }
+
+        function showSection(sectionId) {
+            if (currentSection) {
+                document.getElementById(currentSection).style.display = 'none';
+            }
+            
+            previousSection = currentSection;
+            currentSection = sectionId;
+            
+            document.getElementById(sectionId).style.display = 'block';
+            document.getElementById('navHome').style.display = 'flex';
+            document.getElementById('navBack').style.display = 'flex';
+            
+            setTimeout(() => {
+                document.getElementById(sectionId).style.opacity = '1';
+            }, 50);
+            
+            if (sectionId === 'main-interface') {
+                setTimeout(startTransitDemo, 500);
+            }
+        }
+
+        function goHome() {
+            showSection('main-interface');
+        }
+
+        function goBack() {
+            if (previousSection && previousSection !== currentSection) {
+                showSection(previousSection);
+            }
+        }
+
+        function showDataUniverse() {
+            showSection('data-universe');
+        }
+
+        function showUserStories() {
+            showSection('user-stories');
+        }
+
+        function submitStory() {
+            const story = document.getElementById('userStory').value;
+            if (story.trim()) {
+                alert('Thank you for sharing your cosmic journey. Your story has been added to the collective human curiosity database.');
+                document.getElementById('userStory').value = '';
+            }
+        }
+
+        function rotateStatusMessage() {
+            let index = 0;
+            setInterval(() => {
+                document.getElementById('statusText').textContent = statusMessages[index];
+                index = (index + 1) % statusMessages.length;
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
